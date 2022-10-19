@@ -145,13 +145,13 @@ class BlackJack
         }
     }
 
-    public function checkForBlackjack() {
+    public function checkForBlackjack($checkDealer = true) {
         $this->blackjack = true;
         if ($this->playerTotal == 21 && $this->dealerTotal < 21) {
             $this->playerHitsBlackjack();
         } else if ($this->playerTotal == 21 && $this->dealerTotal == 21) {
             $this->playerTies();
-        } else if ($this->dealerTotal == 21) {
+        } else if ($this->dealerTotal == 21 && $checkDealer) {
             $this->dealerHitsBlackjack();
         } else {
             $this->blackjack = false;
@@ -231,7 +231,7 @@ class BlackJack
                 echo "----------" . PHP_EOL;
                 $this->playerCards = [$card];
                 $this->playerDrawsOne();
-                $this->checkForBlackjack();
+                $this->checkForBlackjack(false);
                 if (!$this->blackjack) {
                     $this->playStand();
                 }
