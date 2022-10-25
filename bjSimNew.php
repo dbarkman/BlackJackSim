@@ -28,6 +28,7 @@ class BlackJack
     private $dealerCard1;
     private $dealerTotal;
     private $playerMove;
+    private $aces;
     private $splitCounter;
     private $verbose;
 
@@ -57,7 +58,7 @@ class BlackJack
             $this->shoe = array_merge($this->shoe, $this->deck);
         }
         shuffle($this->shoe);
-//        array_unshift($this->shoe, 2,11,3,11);
+        array_unshift($this->shoe, 2,8,2,10);
     }
     
     private function dealCards() {
@@ -74,9 +75,9 @@ class BlackJack
         array_push($this->dealerCards, $this->dealerCard1, $dealerCard2);
 
         foreach ($this->playerHands as $hand) {
-            $this->outputToTerminal("Player cards: " . $hand[0] . ", " . $hand[1]);
+            $this->out("Player cards: " . $hand[0] . ", " . $hand[1]);
         }
-        $this->outputToTerminal("Dealer cards: " . $this->dealerCard1 . ", " . $dealerCard2);
+        $this->out("Dealer cards: " . $this->dealerCard1 . ", " . $dealerCard2);
 
         if ($dealerCard2 == 11 && $this->dealerCard1 == 11) $dealerCard2 = 1;
         $this->dealerTotal = array_sum($this->dealerCards);
@@ -88,7 +89,7 @@ class BlackJack
             //clean up hand need a sum or ordered cards
             if (count($hand) < 2) {
                 $newCard = array_shift($this->shoe);
-                echo "Player draws: " . $newCard . PHP_EOL;
+                $this->out("Player draws: " . $newCard . ", for " . $this->playerTotal);
                 $hand[] = $newCard;
             }
             $this->playerCards = $hand;
@@ -107,7 +108,6 @@ class BlackJack
 
         //dealer plays
         echo "----------" . PHP_EOL;
-        echo "Dealer's turn" . PHP_EOL;
         if ($this->dealerTotal == 22) {
             unset($this->dealerCards[1]);
             $this->dealerCards[1] = 1;
@@ -116,22 +116,26 @@ class BlackJack
         if ($this->dealerTotal <= 17) {
             $this->dealerDraws();
         }
+        echo "Dealer stands with: " . $this->dealerTotal . PHP_EOL;
     }
 
     private function playHand() {
         //stand
         if ($this->playerMove == "S") {
-            echo "Player will stand with: " . $this->playerTotal . PHP_EOL;
+            if ($this->playerTotal > 0) {
+                echo "Player will stand with: " . $this->playerTotal . PHP_EOL;
+            }
             $this->handTotals[] = $this->playerTotal;
 
         } else if ($this->playerMove == "H") {
             echo "Player will hit with: " . $this->playerTotal . PHP_EOL;
             while ($this->playerTotal <= 21) {
                 $newCard = array_shift($this->shoe);
-                $this->outputToTerminal("Player draws: " . $newCard);
+                $originalNewCard = $newCard;
                 if ($newCard == 11 && $this->playerTotal > 10) $newCard = 1;
                 $this->playerCards[] = $newCard;
                 $this->playerTotal = array_sum($this->playerCards);
+                $this->out("Player draws: " . $originalNewCard . ", for " . $this->playerTotal);
                 if ($this->playerTotal > 21) {
                     $position = array_search(11, $this->playerCards);
                     if ($position !== FALSE) {
@@ -175,23 +179,25 @@ class BlackJack
         } else if ($this->playerMove == "D") {
             echo "Player will double down with: " . $this->playerTotal . PHP_EOL;
             $newCard = array_shift($this->shoe);
-            $this->outputToTerminal("Player draws: " . $newCard);
+            $originalNewCard = $newCard;
             if ($newCard == 11 && $this->playerTotal > 10) $newCard = 1;
             $this->playerCards[] = $newCard;
             $this->playerTotal = array_sum($this->playerCards);
+            $this->out("Player draws: " . $originalNewCard . ", for " . $this->playerTotal);
             $this->playerMove = "S";
             $this->playHand();
 
         } else if ($this->playerMove == "P") {
             echo "Player will split with: " . $this->playerTotal . PHP_EOL;
             if ($this->playerTotal == 22) { //just for aces
-                echo "splitting aces" . PHP_EOL;
+                echo "Splitting Aces" . PHP_EOL;
                 foreach ($this->playerCards as $card) {
                     $newCard = array_shift($this->shoe);
-                    echo "Player draws: " . $newCard . PHP_EOL;
+                    $originalNewCard = $newCard;
                     if ($newCard == 11) $newCard = 1;
                     $this->playerCards = [$card, $newCard];
                     $this->playerTotal = array_sum($this->playerCards);
+                    $this->out("Player draws: " . $originalNewCard . ", for " . $this->playerTotal);
                     $this->playerMove = "S";
                     $this->playHand();
                 }
@@ -199,11 +205,11 @@ class BlackJack
                 $this->splitCounter++;
                 if ($this->splitCounter < 3) {
                     $secondCard = $this->playerCards[1];
-                    echo "splitting " . $secondCard . "s" . PHP_EOL;
+                    echo "Splitting " . $secondCard . "s" . PHP_EOL;
                     unset($this->playerCards[1]);
                     $newCard = array_shift($this->shoe);
                     $this->playerCards[1] = $newCard;
-                    echo "Player draws: " . $newCard . PHP_EOL;
+                    $this->out("Player draws: " . $newCard . ", for " . ($secondCard + $newCard));
                     $this->playerHands[] = [$secondCard];
                 }
                 //clean up hand
@@ -232,6 +238,7 @@ class BlackJack
     private function cleanupHand() {
         $position = array_search(11, $this->playerCards);
         if ($this->playerCards[0] == $this->playerCards[1] && $this->splitCounter < 3) {
+            if ($this->playerCards[0] == 11) $this->aces = true;
             $this->playerTotal = $this->playerCards[0] . $this->playerCards[1];
         } else if ($position !== FALSE && $this->splitCounter < 3) {
             unset($this->playerCards[$position]);
@@ -241,7 +248,7 @@ class BlackJack
         } else {
             $this->playerTotal = array_sum($this->playerCards);
         }
-        if ($this->playerTotal == 22) {
+        if ($this->playerTotal == 22 && $this->aces) {
             $this->playerCards[1] = 1;
             $this->playerTotal = array_sum($this->playerCards);
         }
@@ -267,7 +274,7 @@ class BlackJack
             if ($newCard == 11 && $this->dealerTotal > 10) $newCard = 1;
             $this->dealerCards[] = $newCard;
             $this->dealerTotal = array_sum($this->dealerCards);
-            $this->outputToTerminal($dealerDraw . " for: " . $this->dealerTotal);
+            $this->out($dealerDraw . ", for: " . $this->dealerTotal);
             if (in_array(11, $this->dealerCards) && $this->dealerTotal > 17) break;
         }
     }
@@ -296,7 +303,7 @@ class BlackJack
         $this->strategyFile = fopen($strategy, "r");
     }
 
-    function outputToTerminal($output) {
+    function out($output) {
         if ($this->verbose) {
             echo $output . PHP_EOL;
         }
