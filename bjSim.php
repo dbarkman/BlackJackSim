@@ -1,212 +1,69 @@
 <?php
 
-/*
- * To do:
- * Write test file
- * Test Limit how many splits
- * money
+/**
+ * bjSimNew.php
+ * Project: bjSim
+ * Created with PhpStorm
+ * Developer: David Barkman
+ * Created on: 10/22/22 @ 15:12
  */
 
-if (count($argv) < 3) {
-    echo "include argument for iterations and hands" . PHP_EOL;
-} else {
-    $iterations = $argv[1];
-    $hands = $argv[2];
+$hands = $argv[1];
 
-    $playerBlackjack = 0;
-    $playerWins = 0;
-    $playerBusts = 0;
-    $dealerBlackjack = 0;
-    $dealerWins = 0;
-    $dealerBusts = 0;
-    $push = 0;
-    $surrender = 0;
-    $stand = 0;
-    $hit = 0;
-    $double = 0;
-    $split = 0;
-    $run = 0;
-
-    $test = isset($argv[3]) ? $argv[3] : false;
-    $testShoe = isset($argv[4]) ? explode(',',$argv[4]) : [];
-    $expectedStrategy = isset($argv[5]) ? $argv[5] : 'S';
-    $expectedOutcome = isset($argv[6]) ? $argv[6] : 0;
-
-    for ($i = 0; $i < $iterations; $i++) {
-        $bj = new BlackJack($hands, $test, $testShoe, $expectedStrategy, $expectedOutcome);
-        $winner = $bj->winner;
-        foreach($winner as $win) {
-            switch($win) {
-                case 0:
-                    $playerBlackjack++;
-                    break;
-                case 1:
-                    $playerWins++;
-                    break;
-                case 2:
-                    $playerBusts++;
-                    break;
-                case 3:
-                    $dealerBlackjack++;
-                    break;
-                case 4:
-                    $dealerWins++;
-                    break;
-                case 5:
-                    $dealerBusts++;
-                    break;
-                case 6:
-                    $push++;
-                    break;
-                case 7:
-                    $surrender++;
-                    break;
-            }
-        }
-        $strategies = $bj->strategies;
-        $stand += $strategies['S'];
-        $hit += $strategies['H'];
-        $double += $strategies['D'];
-        $split += $strategies['P'];
-        $run += $strategies['R'];
-    }
-
-    if (!$test) {
-        echo PHP_EOL;
-        echo "------------------------------------------------------------------------------------------" . PHP_EOL;
-        echo PHP_EOL;
-        echo "Results for " . $iterations . " games:" . PHP_EOL;
-        echo "Player Blackjacks: " . $playerBlackjack . " - " . ($playerBlackjack / $iterations * 100) . "%" . PHP_EOL;
-        echo "Player Wins: " . $playerWins . " - " . ($playerWins / $iterations * 100) . "%" . PHP_EOL;
-        echo "Player Busts: " . $playerBusts . " - " . ($playerBusts / $iterations * 100) . "%" . PHP_EOL;
-        echo "Dealer Blackjacks: " . $dealerBlackjack . " - " . ($dealerBlackjack / $iterations * 100) . "%" . PHP_EOL;
-        echo "Dealer Wins: " . $dealerWins . " - " . ($dealerWins / $iterations * 100) . "%" . PHP_EOL;
-        echo "Dealer Busts: " . $dealerBusts . " - " . ($dealerBusts / $iterations * 100) . "%" . PHP_EOL;
-        echo "Push: " . $push . " - " . ($push / $iterations * 100) . "%" . PHP_EOL;
-        echo "Surrender: " . $surrender . " - " . ($surrender / $iterations * 100) . "%" . PHP_EOL;
-        echo PHP_EOL;
-        echo "Player: " . ($playerBlackjack + $playerWins + $dealerBusts) . " - " . (($playerBlackjack + $playerWins + $dealerBusts) / $iterations * 100) . "%" . PHP_EOL;
-        echo "Dealer: " . ($dealerBlackjack + $dealerWins + $playerBusts) . " - " . (($dealerBlackjack + $dealerWins + $playerBusts) / $iterations * 100) . "%" . PHP_EOL;
-        echo "Tie: " . ($push + $surrender) . " - " . (($push + $surrender) / $iterations * 100) . "%" . PHP_EOL;
-        echo PHP_EOL;
-        echo "Stand: " . $stand . " - " . ($stand / $iterations * 100) . "%" . PHP_EOL;
-        echo "Hit: " . $hit . " - " . ($hit / $iterations * 100) . "%" . PHP_EOL;
-        echo "Double: " . $double . " - " . ($double / $iterations * 100) . "%" . PHP_EOL;
-        echo "Split: " . $split . " - " . ($split / $iterations * 100) . "%" . PHP_EOL;
-        echo "Surrender: " . $run . " - " . ($run / $iterations * 100) . "%" . PHP_EOL;
-        echo PHP_EOL;
-    }
-}
+$bj = new BlackJack($hands);
+$bj->play();
 
 class BlackJack
 {
-    private $test;
-    private $testShoe;
-    private $expectedStrategy;
-    private $expectedOutcome;
-
-    private $strategyFile;
     private $decksUsed;
     private $suit;
     private $deck;
     private $shoe;
     private $hands;
     private $playerHands;
-    private $playerCards;//needs to hold multiple for splits
+    private $playerCards;
+    private $playerTotal;
+    private $handTotals;
     private $dealerCards;
     private $dealerCard1;
-    private $dealerCard2;
-    private $playerTotal;//needs to hold multiple for splits
-    private $handTotals;
     private $dealerTotal;
-    private $playerBusts;//needs to hold multiple for splits
-    private $dealerBusts;
+    private $dealerBlackjack;
     private $playerMove;
-    private $blackjack;
+    private $aces;
     private $splitCounter;
     private $verbose;
-    public $winner;
-    public $strategies;
 
-    function __construct($hands, $test, $testShoe, $expectedStrategy, $expectedOutcome) {
-        $this->decksUsed = 6;
+    function __construct($hands) {
+        $this->decksUsed = 1;
         $this->suit = [2,3,4,5,6,7,8,9,10,10,10,10,11];
         $this->deck = array_merge($this->suit, $this->suit, $this->suit, $this->suit);
         $this->shoe = array();
         $this->hands = $hands;
         $this->playerHands = array();
         $this->playerCards = array();
+        $this->handTotals = array();
         $this->dealerCards = array();
-        $this->winner = array();
-        $this->strategies = ['S' => 0, 'H' => 0, 'D' => 0, 'P' => 0, 'R' => 0];
+        $this->dealerBlackjack = false;
 
         $this->verbose = true;
+    }
 
-        if ($test) {
-            $this->test = $test;
-            $this->testShoe = $testShoe;
-            $this->expectedStrategy = $expectedStrategy;
-            $this->expectedOutcome = $expectedOutcome;
-        }
-
-        $this->outputToTerminal("---------------------------------------------");
-
+    public function play() {
         $this->setupShoe();
-        $this->dealInitialCards();
-
-        foreach ($this->playerHands as $hand) {
-            echo "----------" . PHP_EOL;
-            $this->playerCards = [$hand[0], $hand[1]];
-            $this->parsePlayersHand();
-            $this->determinePlayersStrategy();
-            $playerMove = $this->playerMove;
-            $this->checkForBlackjack();
-            if (!$this->blackjack) {
-                $this->playTheHand();
-            }
-            echo "----------" . PHP_EOL;
-        }
-//        exit();
-
-        if ($this->test) $this->checkExpectedStrategy($this->expectedStrategy, $playerMove);
-        if ($this->test) $this->checkExpectedOutcome($this->expectedOutcome, $this->winner[0]);
+        $this->dealCards();
+        $this->playHands();
+        $this->evaluateHands();
     }
-
-    private function checkExpectedStrategy($expected, $actual) {
-        if ($expected == $actual) {
-            echo "Strategy: PASS" . PHP_EOL;
-        } else {
-            echo "Strategy: FAIL" . PHP_EOL;
-        }
-        echo "Expected: " . $expected . ", Actual: " . $actual . PHP_EOL;
-    }
-
-    private function checkExpectedOutcome($expected, $actual) {
-        if ($expected == $actual) {
-            echo "Outcome: PASS" . PHP_EOL;
-        } else {
-            echo "Outcome: FAIL" . PHP_EOL;
-        }
-        echo "Expected: " . $expected . ", Actual: " . $actual . PHP_EOL;
-    }
-
-    private function importStrategy() {
-        $strategy = "bovada.csv";
-        $this->strategyFile = fopen($strategy, "r");
-    }
-
+    
     private function setupShoe() {
         for ($i = 0; $i < $this->decksUsed; $i++) {
             $this->shoe = array_merge($this->shoe, $this->deck);
         }
         shuffle($this->shoe);
-
-        if ($this->test) {
-            $this->shoe = $this->testShoe;
-        }
+        array_unshift($this->shoe, 7,11,10);
     }
-
-    private function dealInitialCards() {
+    
+    private function dealCards() {
         for ($i = 0; $i < $this->hands; $i++) {
             $this->playerHands[$i] = [array_shift($this->shoe)];
         }
@@ -216,25 +73,170 @@ class BlackJack
             $hand[] = array_shift($this->shoe);
             $this->playerHands[$i] = $hand;
         }
-        $this->dealerCard2 = array_shift($this->shoe);
-
-        array_push($this->dealerCards, $this->dealerCard1, $this->dealerCard2);
+        $dealerCard2 = array_shift($this->shoe);
+        array_push($this->dealerCards, $this->dealerCard1, $dealerCard2);
 
         foreach ($this->playerHands as $hand) {
-            $this->outputToTerminal("Player cards: " . $hand[0] . ", " . $hand[1]);
+            $this->out("Player cards: " . $hand[0] . ", " . $hand[1]);
         }
-        $this->outputToTerminal("Dealer cards: " . $this->dealerCard1 . ", " . $this->dealerCard2);
+        $this->out("Dealer cards: " . $this->dealerCard1 . ", " . $dealerCard2);
 
-        if ($this->dealerCard2 == 11 && $this->dealerCard1 == 11) $this->dealerCard2 = 1;
+        if ($dealerCard2 == 11 && $this->dealerCard1 == 11) $dealerCard2 = 1;
         $this->dealerTotal = array_sum($this->dealerCards);
+        if ($this->dealerTotal == 21) $this->dealerBlackjack = true;
+    }
+    
+    private function playHands() {
+        foreach ($this->playerHands as &$hand) {
+            if ($this->dealerBlackjack) {
+                $handTotal = array_sum($hand);
+                if ($handTotal == 22) $handTotal = 12;
+                $this->handTotals[] = $handTotal;
+            } else {
+                $this->out("----------");
+                if (count($hand) < 2) {
+                    $newCard = array_shift($this->shoe);
+                    $hand[] = $newCard;
+                    $this->out("Player draws: " . $newCard . ", for " . array_sum($hand));
+                }
+                $this->playerCards = $hand;
+                $this->cleanupHand();
+
+                $playerBlackjack = false;
+                if ($this->playerTotal == 1110) {
+                    $this->out("BLACKJACK!");
+                    $playerBlackjack = true;
+                }
+
+                if (!$playerBlackjack) {
+                    $this->determineStrategy();
+                    $this->playHand();
+                } else {
+                    $this->handTotals[] = '1';
+                }
+            }
+        } //end of loop
+
+        //dealer plays
+        $this->out("----------");
+        if ($this->dealerTotal == 22) {
+            unset($this->dealerCards[1]);
+            $this->dealerCards[1] = 1;
+            $this->dealerTotal = array_sum($this->dealerCards);
+        }
+        if ($this->dealerTotal <= 17) {
+            $this->dealerDraws();
+        }
+        $this->out("Dealer stands with: " . $this->dealerTotal);
     }
 
-    private function parsePlayersHand() {
-        $this->playerTotal = 0;
+    private function playHand() {
+        if ($this->playerMove == "S") {
+            if ($this->playerTotal > 0) {
+                $this->out("Player will stand with: " . $this->playerTotal);
+            }
+            $this->handTotals[] = $this->playerTotal;
+
+        } else if ($this->playerMove == "H") {
+            $this->out("Player will hit with: " . $this->playerTotal);
+            while ($this->playerTotal <= 21) {
+                $newCard = array_shift($this->shoe);
+                $originalNewCard = $newCard;
+                if ($newCard == 11 && $this->playerTotal > 10) $newCard = 1;
+                $this->playerCards[] = $newCard;
+                $this->playerTotal = array_sum($this->playerCards);
+                if ($this->playerTotal > 21) {
+                    $position = array_search(11, $this->playerCards);
+                    if ($position !== FALSE) {
+                        unset($this->playerCards[$position]);
+                        $this->playerCards[$position] = 1;
+                        $this->playerTotal = array_sum($this->playerCards);
+                        $this->out("Player draws: " . $originalNewCard . ", for " . $this->playerTotal);
+                        $this->determineStrategy();
+                        if ($this->playerMove == "S") break;
+                    } else {
+                        $this->out("Player draws: " . $originalNewCard . ", for " . $this->playerTotal);
+                        $this->playerMove = "S";
+                    }
+                } else {
+                    $this->out("Player draws: " . $originalNewCard . ", for " . $this->playerTotal);
+                    $this->determineStrategy();
+                    if ($this->playerMove == "S") break;
+                }
+            }
+            $this->playHand();
+
+        } else if ($this->playerMove == "D") {
+            $this->out("Player will double down with: " . $this->playerTotal);
+            $newCard = array_shift($this->shoe);
+            $originalNewCard = $newCard;
+            if ($newCard == 11 && $this->playerTotal > 10) $newCard = 1;
+            $this->playerCards[] = $newCard;
+            $this->playerTotal = array_sum($this->playerCards);
+            if ($this->playerTotal > 21) {
+                $position = array_search(11, $this->playerCards);
+                if ($position !== FALSE) {
+                    unset($this->playerCards[$position]);
+                    $this->playerCards[$position] = 1;
+                    $this->playerTotal = array_sum($this->playerCards);
+                }
+            }
+            $this->out("Player draws: " . $originalNewCard . ", for " . $this->playerTotal);
+            $this->playerMove = "S";
+            $this->playHand();
+
+        } else if ($this->playerMove == "P") {
+            if ($this->playerTotal == 22) { //just for aces
+                $this->out("Splitting Aces");
+                foreach ($this->playerCards as $card) {
+                    $newCard = array_shift($this->shoe);
+                    $originalNewCard = $newCard;
+                    if ($newCard == 11) $newCard = 1;
+                    $this->playerCards = [$card, $newCard];
+                    $this->playerTotal = array_sum($this->playerCards);
+                    $this->out("----------");
+                    $this->out("Player draws: " . $originalNewCard . ", for " . $this->playerTotal);
+                    $this->playerMove = "S";
+                    $this->playHand();
+                }
+            } else {
+                if ($this->splitCounter < 3) {
+                    $secondCard = $this->playerCards[1];
+                    $this->out("Player is splitting " . $secondCard . "s");
+                    unset($this->playerCards[1]);
+                    $newCard = array_shift($this->shoe);
+                    $this->playerCards[1] = $newCard;
+                    $this->out("Player draws: " . $newCard . ", for " . ($secondCard + $newCard));
+                    $this->playerHands[] = [$secondCard];
+                }
+                $this->splitCounter++;
+                $this->cleanupHand();
+                $this->determineStrategy();
+                $this->playHand();
+            }
+
+        } else if ($this->playerMove == "Sr" && count($this->playerCards) == 2) {
+            $this->out("Player will surrender with: " . $this->playerTotal . ", against: " . $this->dealerCard1);
+            $this->playerTotal = 0;
+            $this->playerMove = "S";
+            $this->playHand();
+
+        } else if ($this->playerMove == "Sr" && count($this->playerCards) > 2) {
+            if ($this->playerTotal < 17) {
+                $this->playerMove = "H";
+            } else {
+                $this->playerMove = "S";
+            }
+            $this->playHand();
+        }
+    }
+
+    private function cleanupHand() {
         $position = array_search(11, $this->playerCards);
-        if ($this->playerCards[0] == $this->playerCards[1]) {
+        if ($this->playerCards[0] == $this->playerCards[1] && $this->splitCounter < 3) {
+            if ($this->playerCards[0] == 11) $this->aces = true;
             $this->playerTotal = $this->playerCards[0] . $this->playerCards[1];
-        } else if ($position !== FALSE) {
+        } else if ($position !== FALSE && $this->splitCounter < 3) {
             unset($this->playerCards[$position]);
             $otherCard = array_shift($this->playerCards);
             $this->playerTotal = 11 . $otherCard;
@@ -242,201 +244,76 @@ class BlackJack
         } else {
             $this->playerTotal = array_sum($this->playerCards);
         }
-    }
-
-    private function checkForBlackjack($checkDealer = true) {
-        $this->blackjack = false;
-        if ($this->playerTotal == 21 && $this->dealerTotal != 21) {
-            $this->blackjack = true;
-            $this->playerHitsBlackjack();
-        } else if ($this->playerTotal == 21 && $this->dealerTotal == 21) {
-            $this->blackjack = true;
-            $this->playerTies();
-        } else if ($this->playerTotal != 21 && $this->dealerTotal == 21 && $checkDealer) {
-            $this->blackjack = true;
-            $this->dealerHitsBlackjack();
+        if ($this->playerTotal == 22 && $this->aces) {
+            $this->playerCards[1] = 1;
+            $this->playerTotal = array_sum($this->playerCards);
         }
     }
 
-    private function determinePlayersStrategy() {
+    private function determineStrategy() {
         $this->importStrategy();
         $column = $this->dealerCard1 - 1;
         while ($row = fgetcsv($this->strategyFile)) {
+//            echo $row[0] . PHP_EOL;
             if ($row[0] == $this->playerTotal) {
                 $this->playerMove = $row[$column];
                 break;
             }
         }
         $this->playerTotal = array_sum($this->playerCards);
-//        echo "Player's best move is: " . $this->playerMove . " - pt: " . $this->playerTotal . PHP_EOL;
-//        if ($this->playerMove == 'P') { // && $this->splitCounter > 2) {
-//            $this->determinePlayersStrategy();
-//        }
     }
 
-    private function playTheHand() {
-        switch($this->playerMove) {
-            case 'S':
-                $this->strategies['S']++;
-                $this->outputToTerminal("Player's best move is to stand.");
-                $this->handTotals[] = $this->playerTotal;
-//                $this->playStand();
-                break;
-            case 'H':
-                $this->strategies['H']++;
-                $this->outputToTerminal("Player's best move is to hit.");
-                $this->playerDraws();
-                $this->handTotals[] = $this->playerTotal;
-//                $this->playHit();
-                break;
-            case 'D':
-                $this->strategies['D']++;
-                $this->outputToTerminal("Player's best move is to double.");
-                $this->playerDrawsOne();
-                $this->handTotals[] = $this->playerTotal;
-//                $this->playDouble();
-                break;
-            case 'P':
-                $this->splitCounter++;
-                $this->strategies['P']++;
-                $this->outputToTerminal("Player's best move is to split.");
-                $this->playSplit();
-                break;
-            case 'Sr':
-                $this->strategies['R']++;
-                $this->outputToTerminal("Player's best move is to surrender.");
-                $this->handTotals[] = 0;
-//                $this->playerSurrenders();
-                break;
-        }
-    }
-
-    function playStand() {
-        if ($this->dealerTotal < 17) {
-            $this->dealerDraws();
-        }
-        if ($this->dealerTotal > 21) {
-            $this->dealerBusts = true;
-            $this->playerWins();
-        } else if ($this->dealerTotal > $this->playerTotal) {
-            $this->playerLooses();
-        } else if ($this->dealerTotal < $this->playerTotal) {
-            $this->playerWins();
-        } else {
-            $this->playerTies();
-        }
-    }
-
-    function playHit() {
-        $this->playerDraws();
-        if ($this->playerTotal > 21) {
-            $this->playerBusts = true;
-            $this->playerLooses();
-        } else {
-            $this->playStand();
-        }
-    }
-
-    function playDouble() {
-        $this->playerDrawsOne();
-        $this->playerTotal = array_sum($this->playerCards);
-        $this->playStand();
-    }
-
-    function playSplit() {
-        if ($this->playerTotal == 22) { //just for aces
-            foreach ($this->playerCards as $card) {
-                $this->outputToTerminal("----------");
-                $this->playerCards = [$card];
-                $this->playerDrawsOne(true);
-                $this->checkForBlackjack(false);
-                if (!$this->blackjack) {
-                    $this->playStand();
-                }
-            }
-        } else { //any other pair
-            foreach ($this->playerCards as $card) {
-                $this->outputToTerminal("----------");
-                $this->playerCards = array($card);
-                $this->playerDrawsOne();
-                $this->determinePlayersStrategy();
-                $this->checkForBlackjack(false);
-                if (!$this->blackjack) {
-                    $this->playTheHand();
-                }
-            }
-        }
-    }
-
-    function playerDraws() {
-        while ($this->playerTotal <= 21) {
-            $this->playerDrawsOne();
-            $this->determinePlayersStrategy();
-            if ($this->playerMove == "S") break;
-        }
-    }
-
-    function playerDrawsOne($aces = false) {
-        $newCard = array_shift($this->shoe);
-        $this->outputToTerminal("Player draws: " . $newCard);
-        if ($aces) if ($newCard == 11) $newCard = 1;
-        $this->playerCards[] = $newCard;
-        $this->parsePlayersHand();
-    }
-
-    function dealerDraws() {
+    private function dealerDraws() {
         while ($this->dealerTotal <= 21) {
+            if (!in_array(11, $this->dealerCards) && $this->dealerTotal >= 17) break;
             $newCard = array_shift($this->shoe);
-            $this->outputToTerminal("Dealer draws: " . $newCard);
+            $dealerDraw = "Dealer draws: " . $newCard;
             if ($newCard == 11 && $this->dealerTotal > 10) $newCard = 1;
             $this->dealerCards[] = $newCard;
             $this->dealerTotal = array_sum($this->dealerCards);
+            if ($this->dealerTotal > 21) {
+                $position = array_search(11, $this->dealerCards);
+                if ($position !== FALSE) {
+                    unset($this->dealerCards[$position]);
+                    $this->dealerCards[$position] = 1;
+                    $this->dealerTotal = array_sum($this->dealerCards);
+                }
+            }
+            $this->out($dealerDraw . ", for: " . $this->dealerTotal);
             if (in_array(11, $this->dealerCards) && $this->dealerTotal > 17) break;
-            if (!in_array(11, $this->dealerCards) && $this->dealerTotal >= 17) break;
         }
     }
 
-    function playerHitsBlackjack() {
-        $this->outputToTerminal("Player wins! Player hits Blackjack!");
-        $this->winner[] = 0;
-    }
-
-    function dealerHitsBlackjack() {
-        $this->outputToTerminal("Player looses. Dealer hit Blackjack.");
-        $this->winner[] = 3;
-    }
-
-    function playerWins() {
-        if ($this->dealerBusts) {
-            $this->outputToTerminal("Player wins! Player: " . $this->playerTotal . ", Dealer busts: " . $this->dealerTotal);
-            $this->winner[] = 5;
-        } else {
-            $this->outputToTerminal("Player wins! Player: " . $this->playerTotal . ", Dealer: " . $this->dealerTotal);
-            $this->winner[] = 1;
+    private function evaluateHands() {
+        $this->out("----------");
+        foreach ($this->handTotals as $handTotal) {
+            if ($handTotal == 1 && $this->dealerTotal == 21) $handTotal = 21;
+            if ($handTotal > 21) {
+                $this->out("Player looses, player busts. Player: " . $handTotal . ", Dealer: " . $this->dealerTotal);
+            } else if ($handTotal == 0) {
+                $this->out("Player surrenders.");
+            } else if ($this->dealerTotal > 21 && $handTotal != 1) {
+                $this->out("Player wins, dealer busts! Player: " . $handTotal . ", Dealer: " . $this->dealerTotal);
+            } else if ($this->dealerBlackjack && $handTotal != 21) {
+                $this->out("Player looses, dealer hit blackjack. Player: " . $handTotal . ", Dealer: " . $this->dealerTotal);
+            } else if ($handTotal == 1 && $this->dealerTotal != 21) {
+                $this->out("Player wins, player hits Blackjack! Player: 21, Dealer: " . $this->dealerTotal);
+            } else if ($handTotal > $this->dealerTotal) {
+                $this->out("Player wins! Player: " . $handTotal . ", Dealer: " . $this->dealerTotal);
+            } else if ($this->dealerTotal > $handTotal) {
+                $this->out("Player looses. Player: " . $handTotal . ", Dealer: " . $this->dealerTotal);
+            } else {
+                $this->out("Push Player: " . $handTotal . ", Dealer: " . $this->dealerTotal);
+            }
         }
     }
 
-    function playerLooses() {
-        if ($this->playerBusts) {
-            $this->outputToTerminal("Player busts. Player: " . $this->playerTotal . ", Dealer: " . $this->dealerTotal);
-            $this->winner[] = 2;
-        } else {
-            $this->outputToTerminal("Player looses. Player: " . $this->playerTotal . ", Dealer: " . $this->dealerTotal);
-            $this->winner[] = 4;
-        }
+    private function importStrategy() {
+        $strategy = "bovada.csv";
+        $this->strategyFile = fopen($strategy, "r");
     }
 
-    function playerTies() {
-        $this->outputToTerminal("Push. Player: " . $this->playerTotal . ", Dealer: " . $this->dealerTotal);
-        $this->winner[] = 6;
-    }
-
-    function playerSurrenders() {
-        $this->outputToTerminal("Player surrenders. Player: " . $this->playerTotal . ", Dealer: " . $this->dealerTotal);
-        $this->winner[] = 7;
-    }
-
-    function outputToTerminal($output) {
+    function out($output) {
         if ($this->verbose) {
             echo $output . PHP_EOL;
         }
