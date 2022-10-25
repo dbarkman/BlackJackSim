@@ -8,6 +8,12 @@
  * Created on: 10/22/22 @ 15:12
  */
 
+/**
+ * Add iterations
+ * Add results
+ * Add money
+ */
+
 $hands = $argv[1];
 
 $bj = new BlackJack($hands);
