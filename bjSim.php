@@ -86,8 +86,8 @@ if ($showResults) {
     out("Current bank balance: " . $bank);
     out("------------------------------------------------------------");
 }
-//out($bank);
-out("P: " . ($results['pbj'] + $results['pw'] + $results['db']) . ", D: " . ($results['dbj'] + $results['dw'] + $results['pb']));
+out($bank);
+//out("P: " . ($results['pbj'] + $results['pw'] + $results['db']) . ", D: " . ($results['dbj'] + $results['dw'] + $results['pb']));
 
 function out($output) {
     echo $output . PHP_EOL;
