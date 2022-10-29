@@ -15,7 +15,7 @@
 $hands = $argv[1];
 $iterations = $argv[2];
 
-$betUnit = 5;
+$betUnit = 1;
 $betUnits = 2 * $betUnit;
 $bank = 250;
 $results = ['pbj' => 0, 'pw' => 0, 'pb' => 0, 'dbj' => 0, 'dw' => 0, 'db' => 0, 'p' => 0, 'sr' => 0, 's' => 0, 'h' => 0, 'd' => 0, 'sp' => 0, 'spa' => 0, 'ps' => 0];
@@ -39,11 +39,8 @@ for ($i = 0; $i < $iterations; $i++) {
     $bank += $winnings;
     if (!$surrenderOrPush) {
         if ($bj->winnings <= 0) {
-            $betUnits = 2 * $betUnit;
-            $lastResult = 0;
-        } else if ($bj->winnings > 0 && $lastResult == 0) {
             $betUnits = $betUnit;
-            $lastResult = 1;
+            $lastResult = 0;
         } else if ($bj->winnings > 0) {
             $betUnits += $betUnit;
             $lastResult = 1;
@@ -86,8 +83,8 @@ if ($showResults) {
     out("Current bank balance: " . $bank);
     out("------------------------------------------------------------");
 }
-//out($bank);
-out("P: " . ($results['pbj'] + $results['pw'] + $results['db']) . ", D: " . ($results['dbj'] + $results['dw'] + $results['pb']));
+out($bank);
+//out("P: " . ($results['pbj'] + $results['pw'] + $results['db']) . ", D: " . ($results['dbj'] + $results['dw'] + $results['pb']));
 
 function out($output) {
     echo $output . PHP_EOL;
