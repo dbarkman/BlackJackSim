@@ -16,7 +16,7 @@ $hands = $argv[1];
 $iterations = $argv[2];
 
 $betUnit = 1;
-$betUnits = 2 * $betUnit;
+$betUnits = $betUnit;
 $bank = 250;
 $results = ['pbj' => 0, 'pw' => 0, 'pb' => 0, 'dbj' => 0, 'dw' => 0, 'db' => 0, 'p' => 0, 'sr' => 0, 's' => 0, 'h' => 0, 'd' => 0, 'sp' => 0, 'spa' => 0, 'ps' => 0];
 $winnings = 0;
