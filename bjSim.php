@@ -16,12 +16,13 @@ $hands = $argv[1];
 $iterations = $argv[2];
 
 $betUnit = 1;
-$betUnits = 2 * $betUnit;
+$betUnits = $betUnit;
 $bank = 250;
 $results = ['pbj' => 0, 'pw' => 0, 'pb' => 0, 'dbj' => 0, 'dw' => 0, 'db' => 0, 'p' => 0, 'sr' => 0, 's' => 0, 'h' => 0, 'd' => 0, 'sp' => 0, 'spa' => 0, 'ps' => 0];
 $winnings = 0;
 $lastResult = 0;
 $surrenderOrPush = false;
+$winStreak = 0;
 
 //echo "Bank starting balance: " . $bank . PHP_EOL;
 
@@ -38,10 +39,12 @@ for ($i = 0; $i < $iterations; $i++) {
     $winnings += $bj->winnings;
     $bank += $winnings;
     if (!$surrenderOrPush) {
-        if ($bj->winnings <= 0) {
+        if ($bj->winnings <= 0 || $winStreak == 2) {
+            $winStreak = 0;
             $betUnits = $betUnit;
             $lastResult = 0;
         } else if ($bj->winnings > 0) {
+            $winStreak++;
             $betUnits += $betUnit;
             $lastResult = 1;
         }
