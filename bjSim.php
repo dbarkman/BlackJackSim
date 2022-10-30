@@ -37,13 +37,15 @@ for ($i = 0; $i < $iterations; $i++) {
     }
     $winnings += $bj->winnings;
     $bank += $winnings;
+    if ($bank <= 0) {
+        $bank = 0;
+        break;
+    }
     if (!$surrenderOrPush) {
-        if ($bj->winnings <= 0) {
-            $betUnits = $betUnit;
-            $lastResult = 0;
-        } else if ($bj->winnings > 0) {
+        if ($betUnits >= 20) {
+            $betUnits = 1;
+        } else {
             $betUnits += $betUnit;
-            $lastResult = 1;
         }
     } else {
         $surrenderOrPush = false;
