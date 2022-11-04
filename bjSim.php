@@ -17,11 +17,13 @@ $iterations = $argv[2];
 
 $betUnit = 1;
 $betUnits = $betUnit;
-$bank = 250;
+$bank = file_get_contents("bank");
 $results = ['pbj' => 0, 'pw' => 0, 'pb' => 0, 'dbj' => 0, 'dw' => 0, 'db' => 0, 'p' => 0, 'sr' => 0, 's' => 0, 'h' => 0, 'd' => 0, 'sp' => 0, 'spa' => 0, 'ps' => 0];
 $winnings = 0;
 $lastResult = 0;
 $surrenderOrPush = false;
+$winStreak = 0;
+$looseStreak = 0;
 
 //echo "Bank starting balance: " . $bank . PHP_EOL;
 
@@ -46,6 +48,13 @@ for ($i = 0; $i < $iterations; $i++) {
             $betUnits = 1;
         } else {
             $betUnits += $betUnit;
+        }
+        if ($winnings > 0) {
+            $looseStreak = 0;
+            $winStreak += 1;
+        } else {
+            $winStreak = 0;
+            $looseStreak += 1;
         }
     } else {
         $surrenderOrPush = false;
@@ -87,6 +96,7 @@ if ($showResults) {
 }
 out($bank);
 //out("P: " . ($results['pbj'] + $results['pw'] + $results['db']) . ", D: " . ($results['dbj'] + $results['dw'] + $results['pb']));
+file_put_contents("bank", $bank);
 
 function out($output) {
     echo $output . PHP_EOL;
